@@ -14,3 +14,28 @@ test('production : protège interface et API, refuse les écritures intersites',
  assert.equal((await fetch(url+'/api/state',{method:'PUT',headers:{...headers,Origin:'https://example.org','Content-Type':'application/json'},body:'{}'})).status,403);
  assert.equal((await fetch(url,{headers})).status,200);
 });
+
+test('entrée Vercel : export sans écoute, API JSON et assets protégés',async t=>{
+ const {createServer}=await import('node:http');
+ const oldPassword=process.env.ADMIN_PASSWORD;
+ process.env.ADMIN_PASSWORD='test-only';
+ let app;
+ try { ({default:app}=await import('../app.mjs')); }
+ finally { if(oldPassword===undefined) delete process.env.ADMIN_PASSWORD; else process.env.ADMIN_PASSWORD=oldPassword; }
+ const server=createServer(app); await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve)); t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const url=`http://127.0.0.1:${server.address().port}`;
+ const headers={Authorization:'Basic '+Buffer.from('weser:test-only').toString('base64')};
+ const unauthorized=await fetch(url+'/api/config');assert.equal(unauthorized.status,401);assert.equal(unauthorized.headers.get('content-type').includes('application/json'),true);assert.match((await unauthorized.json()).error,/Authentification/);
+ const config=await fetch(url+'/api/config',{headers});assert.equal(config.status,200);assert.equal((await config.json()).protected,true);
+ const html=await (await fetch(url,{headers})).text();const asset=html.match(/src="([^"]+\.js)"/)[1];
+ const script=await fetch(url+asset,{headers});assert.equal(script.status,200);assert.match(script.headers.get('content-type'),/javascript/);
+ assert.equal((await fetch(url+asset)).status,401);
+ assert.equal((await fetch(url+'/api/absente',{headers})).status,404);
+});
+
+test('configuration absente sur Vercel : bloque l’accès et renvoie une erreur JSON exploitable',async t=>{
+ const express=(await import('express')).default; const {configureApp}=await import('../server/app.mjs');
+ const app=express();configureApp(app,{production:true,env:{VERCEL:'1'}});
+ const server=app.listen(0,'127.0.0.1');await once(server,'listening');t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const r=await fetch(`http://127.0.0.1:${server.address().port}/api/config`);assert.equal(r.status,503);assert.match((await r.json()).error,/ADMIN_PASSWORD/);
+});

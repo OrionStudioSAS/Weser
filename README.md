@@ -1,6 +1,14 @@
 # Weser — Veille des marchés
 
-Première version locale d’un espace commercial React pour rechercher les avis BOAMP et TED concernant les appuis de fenêtre et les seuils de porte. Une catégorie « marches d’escalier » reste optionnelle, à confirmer avec Weser.
+Espace commercial React pour repérer les appels d’offres concernant les appuis de fenêtre et les seuils de porte. Le client a confirmé que « les deux marchés » signifie **marchés publics et marchés privés**. Les marches d’escalier ne font pas partie du périmètre produit confirmé.
+
+## Périmètre métier confirmé
+
+- Produits : appuis de fenêtre et seuils de porte.
+- Objectif : veille sur les appels d’offres publics **et privés**.
+- Couverture effective actuelle : **commande publique uniquement**, avec BOAMP et TED. Ces deux sources ne constituent pas une veille générale des consultations privées. L’interface indique cette limite.
+- Couverture privée : **non implémentée**. Identifier avec Weser les plateformes ou flux auxquels l’entreprise a accès, puis vérifier l’accès technique (API ou export autorisé) et les droits de réutilisation avant de développer le connecteur. Une saisie ou un import d’opportunités peut compléter la collecte, sans être présenté comme une veille automatique exhaustive.
+- Le statut juridique de l’acheteur ne suffit pas à classer une consultation comme privée : conserver le contexte et la provenance de chaque opportunité.
 
 ## Lancement
 
@@ -37,7 +45,32 @@ L’application est servie par **Node/Express**, qui héberge à la fois le buil
 
 `ADMIN_PASSWORD` est obligatoire en production. L’accès à l’interface et aux API est protégé par HTTP Basic (`ADMIN_USER`, `ADMIN_PASSWORD`). C’est une protection partagée pour cette première version, sans comptes individuels ni gestion des rôles. Un raccordement à l’authentification du futur espace administrateur reste à prévoir lors de son intégration. Ne pas utiliser HTTP Basic sans HTTPS sur Internet.
 
-Aucun déploiement distant ni configuration de secret n’a été effectué.
+Aucun déploiement distant ni configuration de secret n’est effectué par les scripts locaux.
+
+## Déploiement Vercel
+
+Le fichier `vercel.json` sélectionne le preset **Express** et la commande `npm run build`. Le point d’entrée `app.mjs` exporte l’application sans démarrer de serveur local ni importer Vite. Le build React `dist/**` est inclus dans la fonction et servi par `sendFile()` après authentification. Le répertoire statique public est volontairement vide ; ne pas y placer de données privées. Aucune réécriture vers `index.html` ne doit intercepter les routes `/api`.
+
+Dans **Settings → Environment Variables**, renseigner pour **Production**, et également **Preview** si des aperçus doivent fonctionner :
+
+| Variable | Valeur |
+| --- | --- |
+| `ADMIN_USER` | `weser` ou identifiant choisi |
+| `ADMIN_PASSWORD` | Mot de passe long choisi pour l’accès administrateur (obligatoire) |
+| `GITHUB_TOKEN` | Jeton privé limité au dépôt, permission Contents lecture/écriture |
+| `GITHUB_OWNER` | `OrionStudioSAS` |
+| `GITHUB_REPO` | `Weser` (dépôt privé) |
+| `GITHUB_BRANCH` | `main` ou branche de données existante |
+| `GITHUB_DATA_PATH` | `data/veille.json` |
+| `APP_ORIGIN` | Optionnel : origine HTTPS exacte du domaine utilisé, sans `/` final |
+
+Sans `APP_ORIGIN`, le serveur Vercel utilise l’origine HTTPS du domaine de la requête, ce qui convient aussi aux URL de preview. Si cette variable est fixée, les sauvegardes depuis une autre origine sont refusées. `PORT` et `HOST` ne doivent pas être ajoutés sur Vercel. Aucun préfixe `VITE_` pour ces variables. Ni BOAMP ni TED n’exigent de clé pour les recherches publiques utilisées ici.
+
+Ajouter les variables dans Vercel ne modifie pas les déploiements existants : **redéployer après leur configuration et après avoir poussé le correctif**. Ne jamais copier les secrets dans le chat ou le dépôt Git.
+
+Si le projet est déjà importé avec un ancien réglage Vite, vérifier les paramètres de build : le preset est Express, le build est `npm run build` et le répertoire statique est `public`, pas `dist`. La configuration suivie dans `vercel.json` fixe ces valeurs pour ce projet.
+
+Vérification après redéploiement : ouvrir le site et s’authentifier, puis visiter `/api/config` : une réponse JSON avec `githubConfigured` et `protected` doit apparaître. L’absence de `ADMIN_PASSWORD` renvoie une erreur de configuration explicite et bloque l’accès. Une erreur de permissions GitHub est remontée comme telle, sans écriture de remplacement en local.
 
 ## Recherche et limites de couverture
 

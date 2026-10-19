@@ -2,21 +2,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowDownToLine, ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, CircleHelp, Clock3, ExternalLink, FileText, FolderSearch, Github, LayoutDashboard, LoaderCircle, MapPin, Plus, Search, Settings2, ShieldCheck, SlidersHorizontal, Star, Trash2, X } from 'lucide-react';
 import './styles.css';
+import { api } from './api.mjs';
 
 const initialFilters = { q: '', category: 'all', source: 'all', days: '180', country: 'FR', open: 'true' };
 const blankState = () => ({ version: 1, records: {}, searches: [] });
 const statuses = ['À examiner', 'Pertinent', 'Écarté', 'Traité'];
-const familyNames = { appuis: 'Appuis de fenêtre', seuils: 'Seuils de porte', marches: 'Marches d’escalier' };
+const familyNames = { appuis: 'Appuis de fenêtre', seuils: 'Seuils de porte' };
 const localKey = 'weser-veille-v1';
 const date = value => value ? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value.slice(0,10) + 'T12:00:00')) : 'Non renseignée';
 const isUrgent = n => n.deadline && (new Date(n.deadline.slice(0,10) + 'T23:59:59') - Date.now()) / 86400000 <= 10 && new Date(n.deadline.slice(0,10) + 'T23:59:59') >= new Date();
 const safeLink = url => { try { const u = new URL(url); return u.protocol === 'https:' ? u.href : '#'; } catch { return '#'; } };
-async function api(path, init) {
-  const response = await fetch(path, init);
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'La requête a échoué.');
-  return data;
-}
+
 function App() {
   const [view, setView] = useState('opportunities');
   const [filters, setFilters] = useState(initialFilters);
@@ -115,12 +111,13 @@ function App() {
         <div className="page-heading"><div><div className="eyebrow">DÉVELOPPEMENT COMMERCIAL</div><h1>{view === 'tracked' ? 'Votre sélection, votre suivi.' : view === 'searches' ? 'Vos recherches enregistrées.' : view === 'settings' ? 'Un espace bien connecté.' : 'Les bons projets commencent ici.'}</h1><p>{view === 'opportunities' ? 'Repérez les appels d’offres qui donnent une place à vos produits.' : view === 'tracked' ? 'Retrouvez les opportunités qualifiées par votre équipe.' : view === 'searches' ? 'Relancez vos critères de veille en un clic.' : 'Deux sources publiques. Une sauvegarde partagée sur GitHub.'}</p></div>{['opportunities','tracked'].includes(view) && <button className="button secondary export" onClick={exportCSV} disabled={!list.length}><ArrowDownToLine size={16}/> Exporter</button>}</div>
         {storageError && <div className="alert error" role="alert">{storageError}<button onClick={loadStorage}>Recharger la sauvegarde</button></div>}
         {!config?.githubConfigured && config && <div className="storage-notice"><Github size={15}/> Mode local : votre suivi reste dans ce navigateur. <button onClick={() => setView('settings')}>Connecter GitHub <ArrowRight size={13}/></button></div>}
+        {view === 'opportunities' && <div className="storage-notice"><CircleHelp size={15}/><span>Périmètre actuel : commande publique via BOAMP et TED. Les appels d’offres privés ne sont pas encore connectés.</span></div>}
         {view === 'opportunities' && <>
           <section className="stats" aria-label="Indicateurs des résultats chargés"><Stat label="Avis chargés" value={loading ? '—' : result.notices.length} icon={<FileText size={18}/>} subtitle="sur les pages consultées"/><Stat label="Mentions de produits" value={loading ? '—' : mentioned} icon={<Search size={18}/>} subtitle="dans les textes disponibles"/><Stat label="Dans votre suivi" value={tracked.length} icon={<Bookmark size={18}/>} subtitle="opportunités enregistrées"/><Stat label="Échéances proches" value={loading ? '—' : urgent} icon={<Clock3 size={18}/>} subtitle="dans les 10 prochains jours" warm/></section>
           <section className="search-panel" aria-label="Recherche des appels d’offres"><div className="section-title"><div><SlidersHorizontal size={17}/><h2>Votre périmètre de recherche</h2></div><span>BOAMP + TED</span></div>
             <form onSubmit={e => { e.preventDefault(); runSearch(); }}>
               <div className="search-row"><div className="search-input"><Search size={19}/><input aria-label="Mots-clés" placeholder="Un produit, une expression…" value={filters.q} onChange={e => setFilters({ ...filters, q: e.target.value })}/></div><button className="button primary" disabled={loading}><Search size={17}/>{loading ? 'Recherche…' : 'Rechercher'}</button></div>
-              <div className="filter-row"><Filter label="Famille de produits" value={filters.category} onChange={category => setFilters({ ...filters, category })} items={[["all","Appuis & seuils"],["appuis","Appuis de fenêtre"],["seuils","Seuils de porte"],["marches","Marches · à confirmer"]]}/><Filter label="Sources" value={filters.source} onChange={source => setFilters({ ...filters, source })} items={[["all","Toutes les sources"],["BOAMP","BOAMP · France"],["TED","TED · Europe"]]}/><Filter label="Publication" value={filters.days} onChange={days => setFilters({ ...filters, days })} items={[["30","30 derniers jours"],["90","90 derniers jours"],["180","6 derniers mois"],["365","12 derniers mois"]]}/><Filter label="Périmètre TED" value={filters.country} onChange={country => setFilters({ ...filters, country })} items={[["FR","France"],["EU","Tous les pays TED"]]}/></div>
+              <div className="filter-row"><Filter label="Famille de produits" value={filters.category} onChange={category => setFilters({ ...filters, category })} items={[["all","Appuis & seuils"],["appuis","Appuis de fenêtre"],["seuils","Seuils de porte"]]}/><Filter label="Sources" value={filters.source} onChange={source => setFilters({ ...filters, source })} items={[["all","Toutes les sources"],["BOAMP","BOAMP · France"],["TED","TED · Europe"]]}/><Filter label="Publication" value={filters.days} onChange={days => setFilters({ ...filters, days })} items={[["30","30 derniers jours"],["90","90 derniers jours"],["180","6 derniers mois"],["365","12 derniers mois"]]}/><Filter label="Périmètre TED" value={filters.country} onChange={country => setFilters({ ...filters, country })} items={[["FR","France"],["EU","Tous les pays TED"]]}/></div>
               <div className="search-footer"><label className="checkbox"><input type="checkbox" checked={filters.open === 'true'} onChange={e => setFilters({ ...filters, open: String(e.target.checked) })}/> Échéances à venir ou non renseignées</label><span>Les mots-clés remplacent la famille sélectionnée.</span></div>
             </form>
           </section>

@@ -1,7 +1,6 @@
 export const families = {
   appuis: { label: 'Appuis de fenêtre', terms: ['appui de fenêtre', 'appuis de fenêtres', 'appuis de fenêtre', 'rebord de fenêtre'] },
   seuils: { label: 'Seuils de porte', terms: ['seuil de porte', 'seuils de portes', 'seuil PMR', 'seuils en béton'] },
-  marches: { label: 'Marches d’escalier', terms: ['marche en béton', 'marches préfabriquées', 'marches d’escalier'] },
 };
 export function plain(value) {
   if (value == null) return '';
@@ -16,7 +15,6 @@ export function classify(text) {
   const hits = [];
   if (/appuis? (?:de |des |pour )?fenetres?|rebords? (?:de |des )?fenetres?/.test(s)) hits.push('appuis');
   if (/seuils? (?:de |des )?portes?|seuils? pmr|seuils? en beton/.test(s)) hits.push('seuils');
-  if (/marches? (?:d escalier|en beton|prefabriquees?)/.test(s)) hits.push('marches');
   const building = /beton|prefabri|maconnerie|gros œuvre|gros oeuvre|construction|rehabilitation|renovation/.test(s);
   const cleaning = /nettoyage|vitrerie|proprete/.test(s) && !building;
   return { categories: hits, relevance: cleaning ? 'À vérifier' : hits.length ? 'Mention produit' : 'À vérifier', score: cleaning ? 20 : hits.length ? 90 : 35 };

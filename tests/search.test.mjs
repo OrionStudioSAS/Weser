@@ -5,9 +5,9 @@ test('les seuils financiers et les ports ne deviennent pas des produits', () => 
   assert.deepEqual(classify('Marché au-dessus des seuils européens pour le port de pêche').categories, []);
   assert.equal(classify('Fourniture de seuils de portes en béton').relevance, 'Mention produit');
   assert.equal(classify('Vitrerie et nettoyage des appuis de fenêtres').relevance, 'À vérifier');
-  assert.deepEqual(classify('Appuis de fenêtre et marches d’escalier préfabriquées').categories, ['appuis','marches']);
+  assert.deepEqual(classify('Appuis de fenêtre et marches d’escalier préfabriquées').categories, ['appuis']);
 });
-test('requêtes bornées, mots-clés échappés et marches hors périmètre par défaut', () => {
+test('requêtes bornées, mots-clés échappés et familles appuis et seuils', () => {
   const o = options({page:9999,category:'invalid'});
   assert.equal(o.page,100); assert.equal(o.category,'all'); assert.ok(o.terms.every(t=>!t.includes('marche')));
   const where = new URL(boampURL(options({q:'porte" OR true'}))).searchParams.get('where');
