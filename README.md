@@ -43,7 +43,7 @@ npm start
 
 L’application est servie par **Node/Express**, qui héberge à la fois le build React et les routes `/api`. GitHub héberge le dépôt de code et le fichier de données, pas le processus serveur. **GitHub Pages seul ne peut pas héberger cette architecture**, car le jeton doit rester côté serveur. Prévoir un hébergement Node avec HTTPS, les variables serveur et `HOST=0.0.0.0` si requis par l’hébergeur. Définir `APP_ORIGIN` avec l’origine publique exacte (ex. `https://admin.example.fr`) derrière un reverse proxy.
 
-`ADMIN_PASSWORD` est obligatoire en production. L’accès à l’interface et aux API est protégé par HTTP Basic (`ADMIN_USER`, `ADMIN_PASSWORD`). C’est une protection partagée pour cette première version, sans comptes individuels ni gestion des rôles. Un raccordement à l’authentification du futur espace administrateur reste à prévoir lors de son intégration. Ne pas utiliser HTTP Basic sans HTTPS sur Internet.
+`ADMIN_PASSWORD` est obligatoire en production. L’accès à l’interface et aux API est protégé par un formulaire `/login` (`ADMIN_USER`, `ADMIN_PASSWORD`) et une session de huit heures dans un cookie signé HttpOnly, SameSite=Lax et Secure sur Vercel. Le mot de passe n’est pas conservé dans le navigateur. Une modification de `ADMIN_PASSWORD` invalide les anciennes sessions. Le bouton « Se déconnecter » efface le cookie. C’est une protection partagée pour cette première version, sans comptes individuels ni gestion des rôles. Un raccordement à l’authentification du futur espace administrateur reste à prévoir lors de son intégration. Utiliser HTTPS sur Internet. La limitation des tentatives de connexion est locale à chaque instance serveur, pas distribuée entre les instances Vercel.
 
 Aucun déploiement distant ni configuration de secret n’est effectué par les scripts locaux.
 
@@ -70,7 +70,7 @@ Ajouter les variables dans Vercel ne modifie pas les déploiements existants : *
 
 Si le projet est déjà importé avec un ancien réglage Vite, vérifier les paramètres de build : le preset est Express, le build est `npm run build` et le champ **Output Directory** est `.` (la racine contenant `app.mjs`), pas `public` ni `dist`. La configuration suivie dans `vercel.json` fixe ces valeurs pour ce projet.
 
-Vérification après redéploiement : ouvrir le site et s’authentifier, puis visiter `/api/config` : une réponse JSON avec `githubConfigured` et `protected` doit apparaître. L’absence de `ADMIN_PASSWORD` renvoie une erreur de configuration explicite et bloque l’accès. Une erreur de permissions GitHub est remontée comme telle, sans écriture de remplacement en local.
+Vérification après redéploiement : ouvrir le site, saisir les identifiants dans le formulaire de connexion, puis visiter `/api/config` : une réponse JSON avec `githubConfigured` et `protected` doit apparaître. L’absence de `ADMIN_PASSWORD` renvoie une erreur de configuration explicite et bloque l’accès. Une erreur de permissions GitHub est remontée comme telle, sans écriture de remplacement en local.
 
 ## Recherche et limites de couverture
 

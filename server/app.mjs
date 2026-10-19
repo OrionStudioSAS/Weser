@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { installAdminAuth } from './auth.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { search } from './search.mjs';
@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Partagé entre le serveur local et le point d’entrée Express de Vercel.
 export function configureApp(app, { production = true, env = process.env, store = createStore(env) } = {}) {
-  const user = env.ADMIN_USER || 'weser', password = env.ADMIN_PASSWORD;
+  const password = env.ADMIN_PASSWORD;
   app.disable('x-powered-by');
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -19,13 +19,9 @@ export function configureApp(app, { production = true, env = process.env, store 
       const error = 'Configuration serveur incomplète : renseignez ADMIN_PASSWORD puis redéployez.';
       return isAPI ? res.status(503).json({ error }) : res.status(503).type('text').send(error);
     }
-    if (!password) return next();
-    const expected = Buffer.from(`${user}:${password}`);
-    const supplied = Buffer.from(req.headers.authorization?.startsWith('Basic ') ? req.headers.authorization.slice(6) : '', 'base64');
-    if (expected.length === supplied.length && timingSafeEqual(expected, supplied)) return next();
-    res.setHeader('WWW-Authenticate', 'Basic realm="Weser administration", charset="UTF-8"');
-    return isAPI ? res.status(401).json({ error: 'Authentification requise. Rechargez la page pour vous connecter.' }) : res.status(401).type('text').send('Authentification requise.');
+    next();
   });
+  installAdminAuth(app, { production, env });
   app.use('/api', (req, res, next) => {
     const origin = env.APP_ORIGIN || `${env.VERCEL ? 'https' : req.protocol}://${req.get('host')}`;
     if (req.method === 'PUT' && req.headers.origin && req.headers.origin !== origin) return res.status(403).json({ error: 'Origine refusée.' });
