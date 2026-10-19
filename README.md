@@ -49,7 +49,7 @@ Aucun déploiement distant ni configuration de secret n’est effectué par les 
 
 ## Déploiement Vercel
 
-Le fichier `vercel.json` sélectionne le preset **Express** et la commande `npm run build`. Le point d’entrée `app.mjs` exporte l’application sans démarrer de serveur local ni importer Vite. Le build React `dist/**` est inclus dans la fonction et servi par `sendFile()` après authentification. Le répertoire statique public est volontairement vide ; ne pas y placer de données privées. Aucune réécriture vers `index.html` ne doit intercepter les routes `/api`.
+Le fichier `vercel.json` sélectionne le preset **Express** et la commande `npm run build`. Le point d’entrée `app.mjs` exporte l’application sans démarrer de serveur local ni importer Vite. Le build React `dist/**` est inclus dans la fonction et servi par `sendFile()` après authentification. Pour le preset Express, `outputDirectory: "."` désigne la racine où rechercher le serveur `app.mjs` ; ce réglage ne publie pas tous les fichiers du dépôt comme un site statique. Les éventuels fichiers de `public/` sont servis séparément ; ce répertoire est volontairement vide. Ne pas y placer de données privées. Aucune réécriture vers `index.html` ne doit intercepter les routes `/api`.
 
 Dans **Settings → Environment Variables**, renseigner pour **Production**, et également **Preview** si des aperçus doivent fonctionner :
 
@@ -68,7 +68,7 @@ Sans `APP_ORIGIN`, le serveur Vercel utilise l’origine HTTPS du domaine de la 
 
 Ajouter les variables dans Vercel ne modifie pas les déploiements existants : **redéployer après leur configuration et après avoir poussé le correctif**. Ne jamais copier les secrets dans le chat ou le dépôt Git.
 
-Si le projet est déjà importé avec un ancien réglage Vite, vérifier les paramètres de build : le preset est Express, le build est `npm run build` et le répertoire statique est `public`, pas `dist`. La configuration suivie dans `vercel.json` fixe ces valeurs pour ce projet.
+Si le projet est déjà importé avec un ancien réglage Vite, vérifier les paramètres de build : le preset est Express, le build est `npm run build` et le champ **Output Directory** est `.` (la racine contenant `app.mjs`), pas `public` ni `dist`. La configuration suivie dans `vercel.json` fixe ces valeurs pour ce projet.
 
 Vérification après redéploiement : ouvrir le site et s’authentifier, puis visiter `/api/config` : une réponse JSON avec `githubConfigured` et `protected` doit apparaître. L’absence de `ADMIN_PASSWORD` renvoie une erreur de configuration explicite et bloque l’accès. Une erreur de permissions GitHub est remontée comme telle, sans écriture de remplacement en local.
 
