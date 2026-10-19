@@ -1,0 +1,6 @@
+{
+  "name": "weser-veille", "version": "0.1.0", "private": true, "type": "module",
+  "scripts": {"dev": "node --env-file-if-exists=.env server/index.mjs", "build": "vite build", "start": "node --env-file-if-exists=.env server/index.mjs --production", "test": "node --test tests/*.test.mjs"},
+  "dependencies": {"express": "^5.1.0", "lucide-react": "^0.468.0", "react": "^19.1.0", "react-dom": "^19.1.0"},
+  "devDependencies": {"vite": "^6.3.0"}, "engines": {"node": ">=20.19"}
+}
